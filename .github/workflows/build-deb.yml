@@ -10,7 +10,7 @@ on:
       - 'deb/**'
       - 'requirements.txt'
   pull_request:
-    paths: *trigger-triggers
+    paths: *file-triggers
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
