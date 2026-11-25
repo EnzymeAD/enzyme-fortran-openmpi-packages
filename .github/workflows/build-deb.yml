@@ -21,9 +21,6 @@ jobs:
     name: Build deb package ${{ matrix.os }} LLVM ${{ matrix.llvm }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
-    permissions:
-      contents: read
-      packages: write  # needed to push the deb to GitHub Packages on main
     strategy:
       fail-fast: false
       matrix:
@@ -84,14 +81,26 @@ jobs:
           path: openmpi-llvm-${{ matrix.llvm }}_5.0.11-0_amd64.deb
           retention-days: 1
 
-      - name: Push deb to GitHub Packages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  release:
+    name: Create GitHub release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-deb
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to create GitHub releases
+    steps:
+      - name: Download all deb artifacts
+        uses: actions/download-artifact@6353d3a2cf2d5753cf4194f54a606e0d3c436d44 # v7
+        with:
+          pattern: openmpi-llvm-*-deb
+          path: debs
+          merge-multiple: true
+
+      - name: Create GitHub release with all deb packages
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api \
-            --method PUT \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "repos/${{ github.repository }}/packages/generic/openmpi-llvm-${{ matrix.llvm }}/5.0.11-0/openmpi-llvm${{ matrix.llvm }}_5.0.11-0_amd64.deb" \
-            --input "openmpi-llvm${{ matrix.llvm }}_5.0.11-0_amd64.deb"
+          gh release create "openmpi-${{ github.sha }}" \
+            --title "OpenMPI deb packages" \
+            --notes "OpenMPI 5.0.11 deb packages built with clang/flang for Enzyme Fortran testing." \
+            debs/*.deb
