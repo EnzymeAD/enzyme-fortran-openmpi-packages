@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+export LLVM_VERSION={{llvm_version}}
+
+export CC=clang-${LLVM_VERSION}
+export CXX=clang++-${LLVM_VERSION}
+export FC=flang-${LLVM_VERSION}
+export DEB_BUILD_OPTIONS=nocheck
+
+# Try this to remove problems with hardening and debug symbols
+#export DEB_BUILD_MAINT_OPTIONS = hardening=-all debug=-all
+
+
+# Build the binary package using dpkg-buildpackage
+# -us -uc: don't sign the package
+# -b:      build only binary packages (no source package)
+dpkg-buildpackage -us -uc -b
