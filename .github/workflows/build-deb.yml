@@ -1,0 +1,101 @@
+name: Build OpenMPI deb package
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-deb.yml'
+      - 'copier_template/**'
+      - 'deb/**'
+      - 'requirements.txt'
+  pull_request:
+    paths:
+      - '.github/workflows/build-deb.yml'
+      - 'copier_template/**'
+      - 'deb/**'
+      - 'requirements.txt'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  build-deb:
+    name: Build deb package ${{ matrix.os }} LLVM ${{ matrix.llvm }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write  # needed to push the deb to GitHub Packages on main
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04]
+        llvm: [23]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Add LLVM apt repository and install toolchain
+        run: |
+          set -eo pipefail
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/llvm-snapshot.gpg
+          sudo apt-add-repository -y "deb http://apt.llvm.org/$(lsb_release -c | cut -f2)/ llvm-toolchain-$(lsb_release -c | cut -f2)-${{ matrix.llvm }} main"
+          sudo apt-get update
+          sudo apt-get install -y \
+            llvm-${{ matrix.llvm }}-dev \
+            libomp-${{ matrix.llvm }}-dev \
+            clang-${{ matrix.llvm }} \
+            flang-${{ matrix.llvm }} \
+            wget ca-certificates gnupg software-properties-common lsb-release \
+            build-essential dpkg-dev debhelper file
+
+      - name: Install OpenMPI build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libevent-dev \
+            libhwloc-dev \
+            libpmix-dev \
+            libprrte-dev
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+
+      - name: Generate package files with copier
+        run: |
+          uv tool run --from copier copier copy \
+            --trust \
+            --defaults \
+            --data llvm_version=${{ matrix.llvm }} \
+            copier_template build-output
+
+      - name: Build the deb package
+        working-directory: build-output
+        run: |
+          chmod +x build_package.sh
+          ./build_package.sh
+
+      - name: Upload deb artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openmpi-llvm-${{ matrix.llvm }}-deb
+          path: openmpi-llvm${{ matrix.llvm }}_5.0.11-0_amd64.deb
+          retention-days: 1
+
+      - name: Push deb to GitHub Packages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --method PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "repos/${{ github.repository }}/packages/generic/openmpi-llvm-${{ matrix.llvm }}/5.0.11-0/openmpi-llvm${{ matrix.llvm }}_5.0.11-0_amd64.deb" \
+            --input "openmpi-llvm${{ matrix.llvm }}_5.0.11-0_amd64.deb"
