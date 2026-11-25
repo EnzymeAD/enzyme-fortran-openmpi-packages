@@ -6,7 +6,7 @@ on:
       - main
     paths: &file-triggers
       - '.github/workflows/build-deb.yml'
-      - 'copier_template/**'
+      - 'flang_template/**'
       - 'deb/**'
       - 'requirements.txt'
   pull_request:
@@ -66,7 +66,7 @@ jobs:
             --trust \
             --defaults \
             --data llvm_version=${{ matrix.llvm }} \
-            copier_template build-output
+            flang_template build-output
 
       - name: Build the deb package
         working-directory: build-output
