@@ -4,17 +4,13 @@ on:
   push:
     branches:
       - main
-    paths:
+    paths: &file-triggers
       - '.github/workflows/build-deb.yml'
       - 'copier_template/**'
       - 'deb/**'
       - 'requirements.txt'
   pull_request:
-    paths:
-      - '.github/workflows/build-deb.yml'
-      - 'copier_template/**'
-      - 'deb/**'
-      - 'requirements.txt'
+    paths: *trigger-triggers
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
