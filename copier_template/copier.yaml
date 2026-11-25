@@ -1,0 +1,3 @@
+llvm_version:
+  type: int
+  help: Specify the LLVM to indicate in package configuration.
