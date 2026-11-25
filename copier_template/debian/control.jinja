@@ -1,6 +1,7 @@
 Source: openmpi-llvm-{{llvm_version}}
 Maintainer: EnzymeAD Org <enzyme@example.com>
-Build-Depends: debhelper (>= 12),
+Build-Depends: debhelper (>= 13),
+               clang-{{llvm_version}}, flang-{{llvm_version}}, llvm-{{llvm_version}}-dev,
                wget, ca-certificates,
                libevent-dev, libhwloc-dev, libpmix-dev, libprrte-dev
 Standards-Version: 4.6.2

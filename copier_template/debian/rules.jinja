@@ -4,35 +4,28 @@ VERSION = 5.0.11
 TARBALL = openmpi-$(VERSION).tar.gz
 URL = https://download.open-mpi.org/release/open-mpi/v5.0/$(TARBALL)
 
-# Pass LLVM version through to the environment for configure
-export LLVM_VERSION
-
-# dpkg-buildpackage injects GCC-specific hardening flags that flang rejects.
-# Override all compiler flag variables with minimal flags that clang/flang accept.
-export CFLAGS = -g -O2
-export CXXFLAGS = -g -O2
-export FFLAGS = -g -O2
-export FCFLAGS = -g -O2
+# dpkg-buildpackage injects GCC-specific compiler flags;
+# specify them ourselves so clang/flang accept them.
+#
+# We need to specify -gdwarf-4 because clang/flang default to DWARF 5,
+# which `dwz` a tool to commpress the debug info does not support yet
+# https://sourceware.org/bugzilla/show_bug.cgi?id=24726
+# Since dh is trying to run dwz, we either need to specify the flags
+# or override that step of the build with an empty `override_dh_dwz` target
+export CFLAGS = -g -O2 -gdwarf-4
+export CXXFLAGS = -g -O2 -gdwarf-4
+export FFLAGS = -g -O2 -gdwarf-4
+export FCFLAGS = -g -O2 -gdwarf-4
 export CPPFLAGS =
 export LDFLAGS =
 
 %:
 	dh $@ --without autoreconf
 
-# dwz cannot process LLVM-produced debug info; skip it.
-override_dh_dwz:
-
-# The release tarball already ships a pre-generated configure script;
-# don't try to re-run autoreconf on it.
-override_dh_autoreconf:
-
-# Download and extract the source tarball into the build directory
-override_dh_update_autotools_config:
+# Download, extract, and configure in one step
+override_dh_auto_configure:
 	wget -N --progress=dot:mega $(URL)
 	tar --strip-components=1 -xf $(TARBALL)
-
-# Let dh handle configure/build/install, but pass our custom flags
-override_dh_auto_configure:
 	dh_auto_configure -- \
 		--prefix=/usr \
 		--enable-mpi-fortran=all \
@@ -45,9 +38,5 @@ override_dh_auto_configure:
 		CPPFLAGS="$(CPPFLAGS)" \
 		LDFLAGS="$(LDFLAGS)"
 
-# Skip tests during packaging (they take too long)
+# Skip tests during packaging
 override_dh_auto_test:
-
-# Set the package version explicitly
-override_dh_gencontrol:
-	dh_gencontrol -- -v$(VERSION)-0
