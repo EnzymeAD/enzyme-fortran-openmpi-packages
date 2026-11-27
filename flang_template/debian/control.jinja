@@ -1,0 +1,14 @@
+Source: openmpi-llvm-{{llvm_version}}
+Maintainer: EnzymeAD Org <enzyme@example.com>
+Build-Depends: debhelper (>= 13),
+               clang-{{llvm_version}}, flang-{{llvm_version}}, llvm-{{llvm_version}}-dev,
+               wget, ca-certificates,
+               libevent-dev, libhwloc-dev, libpmix-dev, libprrte-dev
+Standards-Version: 4.6.2
+
+Package: openmpi-llvm-{{llvm_version}}
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, clang-{{llvm_version}}, flang-{{llvm_version}}, llvm-{{llvm_version}}-dev
+Description: OpenMPI built with LLVM and Flang for Enzyme testing
+ OpenMPI compiled with clang and flang to enable Enzyme
+ automatic differentiation on MPI Fortran code.
