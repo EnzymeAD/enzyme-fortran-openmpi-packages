@@ -1,8 +1,8 @@
 #!/usr/bin/make -f
 
-VERSION = 5.0.11
+VERSION = {{mpi_version}}
 TARBALL = openmpi-$(VERSION).tar.gz
-URL = https://download.open-mpi.org/release/open-mpi/v5.0/$(TARBALL)
+URL = https://download.open-mpi.org/release/open-mpi/v{{ mpi_version.rsplit('.', 1)[0] }}/$(TARBALL)
 
 # dpkg-buildpackage injects GCC-specific compiler flags;
 # specify them ourselves so clang/flang accept them.

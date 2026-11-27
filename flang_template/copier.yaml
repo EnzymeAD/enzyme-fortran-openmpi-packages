@@ -1,3 +1,6 @@
 llvm_version:
   type: int
   help: Specify the LLVM to indicate in package configuration.
+mpi_version:
+  type: str
+  help: Specify the OpenMPI version to build and package.
